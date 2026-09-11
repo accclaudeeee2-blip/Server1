@@ -4,31 +4,15 @@ const path = require('path');
 const fs = require('fs');
 const app = express();
 
-app.use(express.json({ limit: '50mb' })); // gede karena terima base64 icon
-app.use('/icons', express.static(path.join(__dirname, 'icons')));
+app.use(express.json({ limit: '5mb' }));
 
-// Buat folder icons kalau belum ada
-if (!fs.existsSync('./icons')) fs.mkdirSync('./icons');
+// Serve semua icon langsung dari folder icons/ yang sudah dibundle
+app.use('/icons', express.static(path.join(__dirname, 'icons')));
 
 let latestRadarData = null;
 let connectedClients = new Set();
 
-// ── Upload icon dari Jaln (dipanggil sekali pas pertama run) ──
-app.post('/upload-icon', (req, res) => {
-    const { heroID, base64 } = req.body;
-    if (!heroID || !base64) return res.sendStatus(400);
-    const buf = Buffer.from(base64, 'base64');
-    fs.writeFileSync(`./icons/${heroID}.png`, buf);
-    res.sendStatus(200);
-});
-
-// ── Cek icon sudah ada belum ──
-app.get('/icons-list', (req, res) => {
-    const files = fs.readdirSync('./icons').map(f => parseInt(f));
-    res.json(files);
-});
-
-// ── HP lo POST data tiap frame ──
+// HP lo POST data tiap frame
 app.post('/update', (req, res) => {
     latestRadarData = req.body;
     connectedClients.forEach(client => {
@@ -39,6 +23,7 @@ app.post('/update', (req, res) => {
     res.sendStatus(200);
 });
 
+// Cek server hidup
 app.get('/ping', (req, res) => {
     res.json({
         status: 'ok',
@@ -47,6 +32,7 @@ app.get('/ping', (req, res) => {
     });
 });
 
+// Debug: lihat data terakhir
 app.get('/latest', (req, res) => {
     res.json(latestRadarData || { message: 'Belum ada data' });
 });
